@@ -33,13 +33,6 @@ module Program =
 
     type Game = { Player1:Player; Player2:Player; JointmoveHistory: JointMove list }
 
-            
-//    let cumulateOutcomes jointMovesList =
-//        List.fold (fun acc x -> let outComes = jointOutcome x; 
-//            { Player1Outcome=outComes.Player1Outcome+acc.Player1Outcome; 
-//              Player2Outcome=outComes.Player2Outcome+acc.Player2Outcome } 
-//            ) 
-//        {Player1Outcome=0;Player2Outcome=0} 
         
     let tick (game:Game) = 
         let playerOneMove = game.Player1.StrategyInfo.Strategy game.JointmoveHistory 
