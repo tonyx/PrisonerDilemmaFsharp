@@ -24,7 +24,20 @@ module Program =
     
     type Strategy = JointMove list -> Move
     type StrategyInfo = {Name: string; Strategy:Strategy}
-    type Player = {Name: string; StrategyInfo: StrategyInfo}
+
+    [<CustomEquality;CustomComparison>]
+    type Player = 
+        {Name: string; StrategyInfo: StrategyInfo}
+        override this.Equals(y) =
+            match y with
+            | :? Player as other  -> this.Name = other.Name
+            | _ -> false
+        override x.GetHashCode() = hash x.Name
+        interface System.IComparable with
+          //member x.CompareTo y = compare x (y :?> Player)
+          //member x.CompareTo y = String.Compare ((((Player)x).Name) , (((Player)y).Name))
+          member x.CompareTo y = String.Compare (x.Name, (y:?> Player).Name)
+
     type Game = { Player1:Player; Player2:Player; JointmoveHistory: JointMove list }
         
     let tick (game:Game) = 
@@ -61,13 +74,27 @@ module Program =
     let gamesScores games =
         games |> List.map (fun (x:Game) -> (x.Player1,x.Player2,gameScores x))
 
-    let scoreForPlayer games playerName =
-        let ot = gamesScores games
-        let gamesWherePlayerIsFirst =  ot |> List.filter (fun (player1,_,_) -> player1.Name = playerName)
-        let gamesWherePlayerIsSecond =  ot |> List.filter (fun (_,player2,_) -> player2.Name = playerName)
+
+    let scoreForPlayer games player =
+        let ot= gamesScores games 
+        let gamesWherePlayerIsFirst =  ot |> List.filter (fun (player1,_,_) -> player1.Name = player.Name)
+        let gamesWherePlayerIsSecond =  ot |> List.filter (fun (_,player2,_) -> player2.Name = player.Name)
         let scoresOfPlayerAsFirst =  gamesWherePlayerIsFirst |> List.sumBy (fun (_,_,x) -> x.Player1Score)
         let scoresOfPlayerAsSecond = gamesWherePlayerIsSecond |> List.sumBy (fun (_,_,x) -> x.Player2Score)
         scoresOfPlayerAsFirst+scoresOfPlayerAsSecond
+
+    let makeNPlayersByStrategyInfo (strategyInfo:StrategyInfo) n =
+        [0 .. n-1] |> List.map (fun x -> {Name=(strategyInfo.Name + "_"+(string)x);StrategyInfo=strategyInfo})
+
+    let playersOfGames (games:Game list) =
+        games |> List.map (fun x -> [x.Player1;x.Player2]) |> List.fold (@) [] |> Set.ofList |> Set.toList
+
+    let allPlayersScore games =
+        let playerNames = playersOfGames games
+        playerNames |> List.map (fun x -> (x,scoreForPlayer games x)) 
+
+    let sortedPlayersScore games =
+        allPlayersScore games |> List.sortBy (fun (_,x) -> x)
 
     let (randomStrategy:Strategy) = 
         fun (_:JointMove list) ->
