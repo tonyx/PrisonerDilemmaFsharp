@@ -31,21 +31,24 @@ module Program =
         let playerOneMove = game.Player1.StrategyInfo.Strategy game.JointmoveHistory 
         let playerTwoMove = game.Player2.StrategyInfo.Strategy game.JointmoveHistory 
         {game with JointmoveHistory = {Player1Move=playerOneMove;Player2Move=playerTwoMove}::game.JointmoveHistory } 
-        
-    let nTicks (game:Game) n =
-        [1 .. n ] |> List.fold (fun acc _ -> tick acc ) game
 
-    type Tournment = {Games:Game list; IterationsPerGame: int}
+    let nTicks (game: Game) n =
+        [1 .. n ] |> List.fold (fun game _ -> game |> tick ) game
+
+
+
+
+    type Tournment = {Games:Game list; TicksForGame: int}
 
     let rand = new Random(System.DateTime.Now.Millisecond)
 
-    let makeTournment players iterationsPerGame = 
+    let makeTournment players ticksForGame = 
         let games = (players |> List.map (fun x -> ((players |> List.filter (fun z -> z.Name <> x.Name)) |> 
         (List.map (fun y ->  {Player1=x;Player2=y;JointmoveHistory=[]}  ))))) |> List.fold (@) [] 
-        {Games = games;IterationsPerGame=iterationsPerGame}
+        {Games = games;TicksForGame=ticksForGame}
 
     let playTournment (tournment:Tournment) = 
-        tournment.Games |> List.map (fun x -> nTicks x tournment.IterationsPerGame)
+        tournment.Games |> List.map (fun x -> nTicks x tournment.TicksForGame)
 
     let gameScores game =  
         game.JointmoveHistory |> List.fold (fun acc x -> 
@@ -60,10 +63,10 @@ module Program =
 
     let scoreForPlayer games playerName =
         let ot = gamesScores games
-        let gamesPlayer1First =  ot |> List.filter (fun (player1,_,_) -> player1.Name = playerName)
-        let gamesPlayer2First =  ot |> List.filter (fun (_,player2,_) -> player2.Name = playerName)
-        let scoresOfPlayerAsFirst =  gamesPlayer1First |> List.sumBy (fun (_,_,x) -> x.Player1Score)
-        let scoresOfPlayerAsSecond = gamesPlayer2First |> List.sumBy (fun (_,_,x) -> x.Player2Score)
+        let gamesWherePlayerIsFirst =  ot |> List.filter (fun (player1,_,_) -> player1.Name = playerName)
+        let gamesWherePlayerIsSecond =  ot |> List.filter (fun (_,player2,_) -> player2.Name = playerName)
+        let scoresOfPlayerAsFirst =  gamesWherePlayerIsFirst |> List.sumBy (fun (_,_,x) -> x.Player1Score)
+        let scoresOfPlayerAsSecond = gamesWherePlayerIsSecond |> List.sumBy (fun (_,_,x) -> x.Player2Score)
         scoresOfPlayerAsFirst+scoresOfPlayerAsSecond
 
     let (randomStrategy:Strategy) = 
@@ -96,4 +99,3 @@ module Program =
     let randomPlayer= {Name="random";StrategyInfo=randomStrategyInfo}
     let titForTatPlayer= {Name="titForTat";StrategyInfo=titForTatStrategyInfo}
 
-          
