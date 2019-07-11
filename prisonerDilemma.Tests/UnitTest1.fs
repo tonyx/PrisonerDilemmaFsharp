@@ -69,46 +69,46 @@ type TestClass () =
 
     
     [<Test>]
-    member this.makeTournmentTest1()  =
+    member this.makeGamesTest1()  =
         let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
         let firstCooperator = {Name="cooperator1";StrategyInfo=cooperatorStrategyInfo}
         let secondCooperator = {Name="cooperator2";StrategyInfo=cooperatorStrategyInfo}
         let players = [firstCooperator;secondCooperator]
-        let tournment = makeTournment players 1
-        Assert.That(List.length (tournment.Games) = 2)
+        let games = makeGames players 
+        Assert.That(List.length games = 2)
 
     [<Test>]
-    member this.makeTournmentTest2()  =
+    member this.makeGamesTest2()  =
         let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
         let firstCooperator = {Name="cooperator1";StrategyInfo=cooperatorStrategyInfo}
         let secondCooperator = {Name="cooperator2";StrategyInfo=cooperatorStrategyInfo}
         let thirdCooperator = {Name="cooperator3";StrategyInfo=cooperatorStrategyInfo}
         let players = [firstCooperator;secondCooperator;thirdCooperator]
-        let tournment = makeTournment players 1
-        Assert.That(List.length (tournment.Games) = 6)
+        let games = makeGames players 
+        Assert.That(List.length games = 6)
         
 
     [<Test>]
-    member this.playTournmentTest()  =
+    member this.playGamesTest3()  =
         let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
         let firstCooperator = {Name="cooperator1";StrategyInfo=cooperatorStrategyInfo}
         let secondCooperator = {Name="cooperator2";StrategyInfo=cooperatorStrategyInfo}
         let thirdCooperator = {Name="cooperator3";StrategyInfo=cooperatorStrategyInfo}
         let players = [firstCooperator;secondCooperator;thirdCooperator]
-        let tournment = makeTournment players 2
-        let playedTournment = playTournment tournment
-        let firstGame = List.head playedTournment
+        let games = makeGames players
+        let playedGames = playGamesNTimes games 2
+        let firstGame = List.head playedGames
         Assert.That(List.length firstGame.JointmoveHistory = 2)
 
     [<Test>]
-    member this.tournmentScores()  =
+    member this.gamesScores()  =
         let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
         let firstCooperator = {Name="cooperator1";StrategyInfo=cooperatorStrategyInfo}
         let secondCooperator = {Name="cooperator2";StrategyInfo=cooperatorStrategyInfo}
         let players = [firstCooperator;secondCooperator]
-        let tournment = makeTournment players 2
-        let playedTournment = playTournment tournment
-        let outcomes = gamesScores playedTournment
+        let games = makeGames players
+        let playedGames = playGamesNTimes games 2
+        let outcomes = gamesScores playedGames
         let (_,_,firstGameOutcome) = List.head outcomes
         Assert.That(firstGameOutcome.Player1Score = 8)
     
@@ -118,13 +118,86 @@ type TestClass () =
         let firstCooperator = {Name="cooperator1";StrategyInfo=cooperatorStrategyInfo}
         let secondCooperator = {Name="cooperator2";StrategyInfo=cooperatorStrategyInfo}
         let players = [firstCooperator;secondCooperator]
-        let tournment = makeTournment players 2
-        let playedTournment = playTournment tournment
-        let outcomes = gamesScores playedTournment
+        let games = makeGames players
+        let playedGames = playGamesNTimes games 2
+        let outcomes = gamesScores playedGames
         let (_,_,firstGameOutcome) = List.head outcomes
         let (_,_,secondGameOutcome) = List.head (List.tail outcomes)
-        let player1outcomes = scoreForPlayerByName playedTournment "cooperator1"
+        let player1outcomes = scoreForPlayer playedGames firstCooperator
         Assert.That(firstGameOutcome.Player1Score = 8)
         Assert.That(secondGameOutcome.Player1Score = 8)
         Assert.That(16 = player1outcomes)
 
+
+    [<Test>]
+    member this.makeNCooperators()  =
+        let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
+        let fiveCooperators = makeNPlayersByStrategyInfo cooperatorStrategyInfo 5
+        Assert.That(5 = List.length fiveCooperators)
+
+
+    [<Test>]
+    member this.makeGames5Players()  =
+        let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
+        let fiveCooperators = makeNPlayersByStrategyInfo cooperatorStrategyInfo 5
+        let games = makeGames fiveCooperators 
+        Assert.That(20 = List.length games)
+
+    [<Test>]
+    member this.makeTournment2Players()  =
+        let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
+        let twoCooperators = makeNPlayersByStrategyInfo cooperatorStrategyInfo 2
+        let games = makeGames twoCooperators
+        Assert.That(2 = List.length games)
+
+    [<Test>]
+    member this.makeTournment3Players()  =
+        let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
+        let threeCooperators = makeNPlayersByStrategyInfo cooperatorStrategyInfo 3
+        let games = makeGames threeCooperators
+        Assert.That(6 = List.length games)
+
+    [<Test>]
+    member this.playedTournmentReturnsGamePlayedNTimes()  =
+        let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
+        let threeCooperators = makeNPlayersByStrategyInfo cooperatorStrategyInfo 3
+        let games = makeGames threeCooperators
+        let playedGames = playGamesNTimes games 10
+        Assert.That(10 = List.length ((List.head playedGames).JointmoveHistory))
+
+    [<Test>]
+    member this.scoresOf10PlaysOfCooperatorsIs80()  =
+        let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
+        let twoCooperators = makeNPlayersByStrategyInfo cooperatorStrategyInfo 2
+        let games = makeGames twoCooperators
+        let playedGames = playGamesNTimes games 10
+        let scores = sortedPlayersScore playedGames
+        let (_,firstScore) = List.head scores
+        Assert.That(80 = firstScore)
+
+    [<Test>]
+    member this.scoresOf10PlaysOfDefectorsIs60()  =
+        let defectorStrategyInfo = {Name="defector";Strategy=defectorStrategy}
+        let twoDefectors = makeNPlayersByStrategyInfo defectorStrategyInfo 2
+        let games = makeGames twoDefectors
+        let playedTournament = playGamesNTimes games 10
+        let scores = sortedPlayersScore playedTournament
+        let (_,firstScore) = List.head scores
+        Assert.That(60 = firstScore)
+
+
+    [<Test>]
+    member this.inPlayingAllDefectorsMutationEndsUnInDefectors()  =
+        let defectorStrategyInfo = {Name="defector";Strategy=defectorStrategy}
+        let twoDefectors = makeNPlayersByStrategyInfo defectorStrategyInfo 2
+        let games = makeGames twoDefectors
+
+        let playedTournament = playGamesNTimes games 10
+        let scores = sortedPlayersScore playedTournament
+        let transProb = mutationProbabilities scores
+        let mutatedPlayers = mutateSomePlayerByRandomFactor 0.5 twoDefectors transProb
+        let firstPlayer = List.head mutatedPlayers
+        let secondPlayer = List.head (List.tail mutatedPlayers)
+        Assert.That (firstPlayer.StrategyInfo.Name = "defector")
+        Assert.That (secondPlayer.StrategyInfo.Name = "defector")
+        
