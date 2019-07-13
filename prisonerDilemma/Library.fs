@@ -1,8 +1,10 @@
 ﻿namespace prisonerDilemma
 
 module Program =
+ 
 
     open System
+    open FSharp.Charting
     type Move = Cooperate | Defect
     type JointMove = {Player1Move: Move; Player2Move: Move}
     type JointScore = {Player1Score: int; Player2Score: int}
@@ -34,7 +36,6 @@ module Program =
         interface System.IComparable with
           member this.CompareTo y = String.Compare (this.Name, (y:?> StrategyInfo).Name)
 
-
     type Player = 
         {Name: string; StrategyInfo: StrategyInfo}
 
@@ -50,20 +51,22 @@ module Program =
 
     let rand = new Random(System.DateTime.Now.Millisecond)
 
+    // create all the possible games between players
     let makeGames players =
         (players |> List.map (fun x -> ((players |> List.filter (fun z -> z.Name <> x.Name)) |> 
         (List.map (fun y ->  {Player1=x;Player2=y;JointmoveHistory=[]}  ))))) |> List.fold (@) [] 
 
 
+    // play the game n times, the resutl will be a game with a joint history
     let playGamesNTimes games n =
         games |> List.map (fun x -> nTicks x n)
 
+    // compute the score of a game
     let gameScores game =  
         game.JointmoveHistory |> List.fold (fun acc x -> 
             let jo = jointScore x;
             {Player1Score=jo.Player1Score+acc.Player1Score;
              Player2Score=jo.Player2Score+acc.Player2Score
-            })
             {Player1Score=0;Player2Score=0} 
 
     let gamesScores games =
@@ -148,10 +151,72 @@ module Program =
         let mutatedPlayers = mutateSomePlayerByRandomFactor randomFactor players tranProb
         mutatedPlayers
 
-    let playersStrategyStats (players: Player list) =
-        let strategies = players |> List.map (fun x -> x.StrategyInfo) |> Set.ofList |> Set.toList
-        strategies |> List.map (fun x -> (x, players |> List.filter (fun y -> y.StrategyInfo = x) |> List.length))
+    // let playersStrategyStats (players: Player list) =
+    //     let strategies = players |> List.map (fun x -> x.StrategyInfo) |> Set.ofList |> Set.toList
+    //     let stat = strategies |> List.map (fun x -> (x.Name, players |> List.filter (fun y -> y.StrategyInfo = x) |> List.length))
+    //     stat
+
+
+    let playersStrategyStats (players: Player list) (strategies: StrategyInfo list)=
+        // let strategies = players |> List.map (fun x -> x.StrategyInfo) |> Set.ofList |> Set.toList
+        let stat = strategies |> List.map (fun x -> (x.Name, players |> List.filter (fun y -> y.StrategyInfo = x) |> List.length))
+        stat
+
+
+
+    let logNGenerationPlayers players numGenerations numIterations randomFactor =
+        let (latest,history) = [1 .. numGenerations] |> List.fold (fun (acc,y) _ -> 
+            (nextGenerationPlayers acc numIterations randomFactor,acc::y) ) (players,[])
+        let all = latest::history
+        let reversedAll = (List.rev all) 
+        let arrayOfAll = reversedAll |> List.toArray
+        let labeledAll = [0 .. Array.length arrayOfAll - 1 ] |> List.fold (fun acc x -> (x + 1,arrayOfAll.[x])::acc) []
+        labeledAll 
+
+    // given labeled series of generation of players, apply playersStrategyStats to each one
+    // let applyStrategyStatToLabeledSeries labeledSeries =
+    //     labeledSeries |> List.map (fun (n,players)-> (n,playersStrategyStats players) )
+
+    let applyStrategyStatToLabeledSeries labeledSeries strategies=
+        labeledSeries |> List.map (fun (n,players)-> (n,playersStrategyStats players strategies) )
+
+    let makeASeriesByName labeledGenerations name =
+        // labeledGenerations |> List.map (fun (n,strategCountPair) -> (n, strategCountPair |> List.find (fun (n,_) -> n = name )))
+
+        labeledGenerations |> List.map (fun (n,strategCountPair) -> (n, (strategCountPair |> List.find (fun (n,_) -> n = name ))  )) |>
+            List.map (fun (a,(_,i)) -> (a,i))
+
+        // labeledGenerations |> List.map (fun (n,strategCountPair) -> (n, (strategCountPair |> 
+        //     List.tryFind (fun (n,_) -> n = name ))  )) |>
+        //     List.map (fun x -> (match x with | Some (a,(_,i)) -> (a,i) | _ -> (0,0)))
+
+
+
+    let lineStatOfEvolution (strategies:StrategyInfo list) players numGenerations numIterations randomFactor =
+        let strategyNames = strategies |> List.map (fun x -> x.Name)
+        let timeFrameLabeledSeries = logNGenerationPlayers players numGenerations numIterations randomFactor 
+        let appliedStrategyStat = applyStrategyStatToLabeledSeries timeFrameLabeledSeries strategies
+        // let strategyNames = appliedStrategyStat |> List.map (fun (_,(n,_)) -> n) |> Set.ofList |> Set.toList
+        // let strategyNames = appliedStrategyStat |> List.map (fun (_,l) -> l |> List.map (strname,intvalue) -> strName))
+        let toPlot = strategyNames |> List.map (fun n -> (n,makeASeriesByName appliedStrategyStat n)) 
+        Chart.Combine (toPlot |> List.map (fun (n,s) -> Chart.Line(s,Name=n) ))
+
+   
+
+
         
+
+
+    // let logNGenerationPlayers players numGenerations numIterations randomFactor =
+    //     let (latest,history) = [1 .. numGenerations] |> List.fold (fun (acc,y) n -> 
+    //         (nextGenerationPlayers acc numIterations randomFactor,acc::y) ) (players,[])
+    //     let all = latest::history
+    //     all
+
+
+
+
+
 
     let cooperatorStrategyInfo = {Name="cooperatorStrategy";Strategy=cooperatorStrategy}
     let defectorStrategyInfo = {Name="defectorStrategy"; Strategy=defectorStrategy}
@@ -163,18 +228,14 @@ module Program =
     let randomPlayer= {Name="random";StrategyInfo=randomStrategyInfo}
     let titForTatPlayer= {Name="titForTat";StrategyInfo=titForTatStrategyInfo}
 
-
-
-
-
 // create 5 cooperators:
-    let cooperators = makeNPlayersByStrategyInfo cooperatorStrategyInfo 5;
+    let cooperators = makeNPlayersByStrategyInfo cooperatorStrategyInfo 10;
 // create 5 defectors:
-    let defectors = makeNPlayersByStrategyInfo defectorStrategyInfo 5;
+    let defectors = makeNPlayersByStrategyInfo defectorStrategyInfo 10;
 // create 5 randoms:
-    let randoms = makeNPlayersByStrategyInfo randomStrategyInfo 5;
+    let randoms = makeNPlayersByStrategyInfo randomStrategyInfo 10;
 // create 5 titForTats 
-    let titForTats= makeNPlayersByStrategyInfo titForTatStrategyInfo 5;
+    let titForTats= makeNPlayersByStrategyInfo titForTatStrategyInfo 10;
 
 // make them allPlayers:
     let players = cooperators@defectors@randoms@titForTats;
@@ -195,9 +256,8 @@ module Program =
 //    ({Name = "titForTatStrategy";
 //      Strategy = <fun:titForTatStrategy@367-1>;}, 5)]
 
+
 // now we want to make them play 20 iterations with each other, and 
-// then make each player mutates according to the "replicatior dynamic"
-//  rule: 
 //  let players_generation_1 = nextGenerationPlayers players 20 1.0
 //  see the stat by playersStrategyStats players_generation_1
 //  get a new generation by
@@ -207,16 +267,15 @@ module Program =
 
 
 
-    let games = makeGames players
+//     let games = makeGames players
 
-    let playedGames = playGamesNTimes games 10
-
-// scores:
-    let scores = sortedPlayersScore playedGames
-// compute transition probabilities:
-    let tranProb = mutationProbabilities scores
-// 
-    let mutatedPlayers = mutateSomePlayerByRandomFactor 0.9 players tranProb
+//     let playedGames = playGamesNTimes games 11
+// // scores:
+//     let scores = sortedPlayersScore playedGames
+// // compute transition probabilities:
+//     let tranProb = mutationProbabilities scores
+// // 
+//     let mutatedPlayers = mutateSomePlayerByRandomFactor 0.9 players tranProb
 
 
 

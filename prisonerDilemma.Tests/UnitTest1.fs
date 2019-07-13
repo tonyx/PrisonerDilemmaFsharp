@@ -201,3 +201,28 @@ type TestClass () =
         Assert.That (firstPlayer.StrategyInfo.Name = "defector")
         Assert.That (secondPlayer.StrategyInfo.Name = "defector")
         
+    [<Test>]
+    member this.twoGenerationsOfCooperators() =
+        let cooperatorStrategyInfo = {Name="cooperatorStrategy";Strategy=cooperatorStrategy}
+        let twoCooperators = makeNPlayersByStrategyInfo cooperatorStrategyInfo 2
+        let labeledGenerations = logNGenerationPlayers twoCooperators 1 1 1.0
+        Assert.That (List.length labeledGenerations = 2)
+
+    // [<Test>]
+    // member this.aggregateTimeLabeledGenerations() =
+    //     let cooperatorStrategyInfo = {Name="cooperatorStrategy";Strategy=cooperatorStrategy}
+    //     let twoCooperators = makeNPlayersByStrategyInfo cooperatorStrategyInfo 2
+    //     let labeledGenerations = logNGenerationPlayers twoCooperators 1 1 1.0
+    //     let serie = applyStrategyStatToLabeledSeries labeledGenerations
+    //     Assert.That (List.length serie = 2)
+
+
+
+
+
+
+
+
+
+
+
