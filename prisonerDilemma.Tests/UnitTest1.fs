@@ -123,7 +123,8 @@ type TestClass () =
         let outcomes = gamesScores playedGames
         let (_,_,firstGameOutcome) = List.head outcomes
         let (_,_,secondGameOutcome) = List.head (List.tail outcomes)
-        let player1outcomes = scoreForPlayer playedGames firstCooperator
+        let scores = gamesScores playedGames
+        let player1outcomes = scoreForPlayer  firstCooperator scores
         Assert.That(firstGameOutcome.Player1Score = 8)
         Assert.That(secondGameOutcome.Player1Score = 8)
         Assert.That(16 = player1outcomes)
@@ -208,6 +209,166 @@ type TestClass () =
         let labeledGenerations = logNGenerationPlayers twoCooperators 1 1 1.0
         Assert.That (List.length labeledGenerations = 2)
 
+    // started refactoring tests
+    [<Test>]
+    member this.testTwoDefectorsOneTickGame() =
+        let defectorStrategyInfo = {Name="defectorStrategyInfo";Strategy=defectorStrategy}
+        let firstDefector = {Name = "firstDefector";StrategyInfo = defectorStrategyInfo}
+        let secondDefector = {Name = "secondDefector";StrategyInfo = defectorStrategyInfo}
+        let game = {Player1=firstDefector;Player2=secondDefector;JointmoveHistory=[]}
+        let playedgame = tick game
+        let playedMoves = playedgame.JointmoveHistory
+        Assert.AreEqual(1,List.length playedMoves)
+        let actualJointmove = List.head playedMoves
+        let expectedJointMoves = {Player1Move = Defect;Player2Move=Defect}
+        Assert.AreEqual(expectedJointMoves,actualJointmove)
+
+
+    [<Test>]
+    member this.testTwoDefectorstwoTicksGame() =
+        let defectorStrategyInfo = {Name="defectorStrategyInfo";Strategy=defectorStrategy}
+        let firstDefector = {Name = "firstDefector";StrategyInfo = defectorStrategyInfo}
+        let secondDefector = {Name = "secondDefector";StrategyInfo = defectorStrategyInfo}
+        let game = {Player1=firstDefector;Player2=secondDefector;JointmoveHistory=[]}
+        let playedgame = nTicks game 2
+        let playedMoves = playedgame.JointmoveHistory
+        Assert.AreEqual(2,List.length playedMoves)
+        let latestJointPlayedMove = List.head playedMoves
+        let firstJointPlayedMove = List.head (List.tail playedMoves)
+        let expectedJointMoves = {Player1Move = Defect;Player2Move=Defect}
+        Assert.AreEqual(expectedJointMoves,latestJointPlayedMove)
+        Assert.AreEqual(expectedJointMoves,firstJointPlayedMove)
+
+    [<Test>]
+    member this.titForTatBetraitsDefectorAtSecondMove() =
+        let defectorStrategyInfo =  {Name="defectorStrategyInfo";Strategy=defectorStrategy}
+        let titForTatStrategyInfo = {Name="titForTatStrategyInfo";Strategy=titForTatStrategy}
+        let defector = {Name= "defector";StrategyInfo=defectorStrategyInfo}
+        let titForTat = {Name = "titForTat";StrategyInfo = titForTatStrategyInfo}
+        let game = {Player1=titForTat;Player2=defector;JointmoveHistory=[]}
+        let playedGame = nTicks game 2
+        let playedMoves = playedGame.JointmoveHistory
+        Assert.AreEqual(2,List.length playedMoves)
+        let latestJointPlayedMoves = List.head playedMoves
+        let firstJointPlayedMoves = List.head (List.tail playedMoves)
+        let expectedFirstJointmoves = {Player1Move=Cooperate;Player2Move=Defect}
+        Assert.AreEqual(expectedFirstJointmoves,firstJointPlayedMoves)
+        let expectedLatestJointMoves = {Player1Move=Defect;Player2Move=Defect}
+        Assert.AreEqual(expectedLatestJointMoves,latestJointPlayedMoves)
+
+    [<Test>]
+    member this.titForTatVsDefectorTwoGamesScores() =
+        let defectorStrategyInfo =  {Name="defectorStrategyInfo";Strategy=defectorStrategy}
+        let titForTatStrategyInfo = {Name="titForTatStrategyInfo";Strategy=titForTatStrategy}
+        let defector = {Name= "defector";StrategyInfo=defectorStrategyInfo}
+        let titForTat = {Name = "titForTat";StrategyInfo = titForTatStrategyInfo}
+        let game = {Player1=titForTat;Player2=defector;JointmoveHistory=[]}
+        let playedGame = nTicks game 2
+
+        let scoresForThisGame = gameScores playedGame
+        let expectedScores = {Player1Score=2+3;Player2Score=5+3}
+        Assert.AreEqual(expectedScores,scoresForThisGame )
+
+    [<Test>]
+    member this.tournmentTestBetweenDefectorAndTifForTAt() =
+        let defectorStrategyInfo =  {Name="defectorStrategyInfo";Strategy=defectorStrategy}
+        let titForTatStrategyInfo = {Name="titForTatStrategyInfo";Strategy=titForTatStrategy}
+        let defector = {Name= "defector";StrategyInfo=defectorStrategyInfo}
+        let titForTat = {Name = "titForTat";StrategyInfo = titForTatStrategyInfo}
+        let players = [defector;titForTat]
+        let games = makeGames players
+        Assert.AreEqual(2,List.length games)
+        let playedGames = playGamesNTimes games 1 
+        let playedGamesScores = gamesScores playedGames
+        let firstPlayedGameScores = List.head playedGamesScores
+        let secondPlayedGameScores = List.head (List.tail playedGamesScores)
+        let expectedFirstPlayedGameScore = (defector,titForTat,{Player1Score=5;Player2Score=2})
+        let expectedSecondPlayedGameScore = (titForTat,defector,{Player1Score=2;Player2Score=5})
+        Assert.AreEqual(expectedFirstPlayedGameScore,firstPlayedGameScores)
+        Assert.AreEqual(expectedSecondPlayedGameScore,secondPlayedGameScores)
+
+
+    [<Test>]
+    member this.scoreOfDefectorVsTitForTatInAOneTickGameTournment() =
+        let defectorStrategyInfo =  {Name="defectorStrategyInfo";Strategy=defectorStrategy}
+        let titForTatStrategyInfo = {Name="titForTatStrategyInfo";Strategy=titForTatStrategy}
+        let defector = {Name= "defector";StrategyInfo=defectorStrategyInfo}
+        let titForTat = {Name = "titForTat";StrategyInfo = titForTatStrategyInfo}
+        let players = [defector;titForTat]
+        let games = makeGames players
+        Assert.AreEqual(2,List.length games)
+        let playedGames = playGamesNTimes games 1 
+        let expectedScoreForTitForTat = 2 + 2
+        let scores = gamesScores playedGames
+        let titForTatScore = scoreForPlayer  titForTat scores
+        let defectorScore = scoreForPlayer  defector scores
+        Assert.AreEqual(4,titForTatScore)
+        Assert.AreEqual(10,defectorScore)
+
+
+    [<Test>]
+    member this.sameScoreSameMutationProbability() =
+        let defectorStrategyInfo =  {Name="defectorStrategyInfo";Strategy=defectorStrategy}
+        let defector1 = {Name= "defector1";StrategyInfo=defectorStrategyInfo}
+        let defector2 = {Name= "defector2";StrategyInfo=defectorStrategyInfo}
+        let scores = [(defector1,6);(defector2,6)]
+        let cumulativeProbabilities = mutationProbabilities scores
+        let firstInterval = List.head cumulativeProbabilities
+        let secondInterval = List.head (List.tail cumulativeProbabilities)
+        let expectedFirstInterval = (defector1,0.5)
+        let expectedSecondInterval = (defector2,1.0)
+        Assert.AreEqual(expectedFirstInterval,firstInterval)
+        Assert.AreEqual(expectedSecondInterval,secondInterval)
+
+    [<Test>]
+    member this.twoThirdAndOneThirdProbabilityonCumulativeProbinfo() =
+        let defectorStrategyInfo =  {Name="defectorStrategyInfo";Strategy=defectorStrategy}
+        let defector1 = {Name= "defector1";StrategyInfo=defectorStrategyInfo}
+        let defector2 = {Name= "defector2";StrategyInfo=defectorStrategyInfo}
+        let scores = [(defector1,6);(defector2,4)]
+        let cumulativeProbabilities = mutationProbabilities scores
+        let firstInterval = List.head cumulativeProbabilities
+        let secondInterval = List.head (List.tail cumulativeProbabilities)
+        let expectedFirstInterval = (defector1,(double)6/(double)10)
+        let expectedSecondInterval = (defector2,1.0)
+        Assert.AreEqual(expectedFirstInterval,firstInterval)
+        Assert.AreEqual(expectedSecondInterval,secondInterval)
+
+    [<Test>]
+    member this.pickUpPlayerOnCumulativeProbabilityList() =
+        let defectorStrategyInfo =  {Name="defectorStrategyInfo";Strategy=defectorStrategy}
+        let defector1 = {Name= "defector1";StrategyInfo=defectorStrategyInfo}
+        let defector2 = {Name= "defector2";StrategyInfo=defectorStrategyInfo}
+        let scores = [(defector1,6);(defector2,4)]
+        let pickUpFirstInterval = (double)6/(double)10 - 0.001
+        let pickUpSecondInterval = (double)6/(double)10 + 0.001
+        let cumulativeProbabilitiesList = mutationProbabilities scores
+        let firstIntervalPlayer = pickUpAPlayerBasedOnMutationProbabilities cumulativeProbabilitiesList pickUpFirstInterval
+        Assert.AreEqual(defector1,firstIntervalPlayer)
+        let secondIntervalPlayer = pickUpAPlayerBasedOnMutationProbabilities cumulativeProbabilitiesList pickUpSecondInterval
+        Assert.AreEqual(defector1,secondIntervalPlayer)
+
+
+
+
+        
+
+
+
+
+
+
+
+
+
+
+        // let actualJointmove = List.head playedMoves
+        // let expectedJointMoves = {Player1Move = Defect;Player2Move=Defect}
+        // Assert.AreEqual(expectedJointMoves,actualJointmove)
+
+
+
+
     // [<Test>]
     // member this.aggregateTimeLabeledGenerations() =
     //     let cooperatorStrategyInfo = {Name="cooperatorStrategy";Strategy=cooperatorStrategy}
@@ -215,6 +376,8 @@ type TestClass () =
     //     let labeledGenerations = logNGenerationPlayers twoCooperators 1 1 1.0
     //     let serie = applyStrategyStatToLabeledSeries labeledGenerations
     //     Assert.That (List.length serie = 2)
+
+
 
 
 
