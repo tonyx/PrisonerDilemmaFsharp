@@ -3,10 +3,21 @@
 module Program =
 
     open System
+    open System.Text
+    open Microsoft.FSharp.Quotations
+    open Microsoft.FSharp.Quotations.Patterns
+    open Microsoft.FSharp.Quotations.DerivedPatterns
+    open Microsoft.FSharp.Quotations.ExprShape
+
+
     open FSharp.Charting
     type Move = Cooperate | Defect
     type JointMove = {Player1Move: Move; Player2Move: Move}
     type JointScore = {Player1Score: int; Player2Score: int}
+
+
+    let evalQ (x:Expr<Move>) = 2
+
 
     let jointScore jointMove  =
         let R = 4 // my outcome if I cooperate and the other cooperates
@@ -22,11 +33,13 @@ module Program =
             | {Player1Move= Defect ; Player2Move=Cooperate} ->    {Player1Score=T; Player2Score=S} 
             | {Player1Move= Defect ; Player2Move=Defect} ->       {Player1Score=P; Player2Score=P}   
     
-    type Strategy = JointMove list -> Move
+
+    type Strategy = (Move list) -> (Move list) -> Move
+
 
     [<CustomEquality;CustomComparison>]
-    type StrategyInfo = 
-        {Name: string; Strategy:Strategy}
+    type StrategyInfo =
+        {Name: string; Strategy: Strategy}
         override this.Equals(y) =
             match y with
             | :? StrategyInfo as other -> this.Name = other.Name
@@ -35,35 +48,35 @@ module Program =
         interface System.IComparable with
           member this.CompareTo y = String.Compare (this.Name, (y:?> StrategyInfo).Name)
 
+
     type Player = 
         {Name: string; StrategyInfo: StrategyInfo}
 
     type Game = { Player1:Player; Player2:Player; JointmoveHistory: JointMove list }
-        
+
 
     let tick (game:Game) = 
-        let playerOneMove = game.Player1.StrategyInfo.Strategy game.JointmoveHistory 
-        let playerTwoMove = game.Player2.StrategyInfo.Strategy game.JointmoveHistory 
+        let firstPlayerMoves = game.JointmoveHistory |> List.map (fun X -> X.Player1Move)
+        let secondPlayerMoves = game.JointmoveHistory |> List.map (fun X -> X.Player2Move)
+        let playerOneMove = game.Player1.StrategyInfo.Strategy firstPlayerMoves secondPlayerMoves
+        let playerTwoMove = game.Player2.StrategyInfo.Strategy secondPlayerMoves firstPlayerMoves 
         {game with JointmoveHistory = {Player1Move=playerOneMove;Player2Move=playerTwoMove}::game.JointmoveHistory } 
+
 
     let nTicks (game: Game) n =
         [1 .. n ] |> List.fold (fun game _ -> game |> tick ) game
 
     let rand = new Random(System.DateTime.Now.Millisecond)
 
-    // create all the possible games between players
-    let makeGames players =
-        (players |> List.map (fun x -> ((players |> List.filter (fun z -> z.Name <> x.Name)) |> 
+    let makeGames (players: Player list): Game list =
+        (players |> List.map (fun x -> ((players |> List.filter (fun z -> z <> x)) |> 
         (List.map (fun y ->  {Player1=x;Player2=y;JointmoveHistory=[]}  ))))) |> List.fold (@) [] 
 
 
-    // play the game n times, the resutl will be a game with a joint history
-    let playGamesNTimes games n =
+    let playGamesNTimes (games:Game list) n =
         games |> List.map (fun x -> nTicks x n)
 
-    // compute the score of a game
-
-    let gameScores game =  
+    let gameScores (game: Game) =  
         game.JointmoveHistory |> List.fold (fun acc x -> 
             let jo = jointScore x;
             {Player1Score=jo.Player1Score+acc.Player1Score;
@@ -71,17 +84,16 @@ module Program =
             })
             {Player1Score=0;Player2Score=0}
 
-
-    let gamesScores games =
+    let gamesScores (games:Game list) =
         games |> List.map (fun (x:Game) -> (x.Player1,x.Player2,gameScores x))
 
-    let scoreForPlayer player scores =              
+    let scoreForPlayer (player:Player) scores =              
         let gamesWherePlayerIsFirst =  scores |> List.filter (fun (player1,_,_) -> player1 = player)
         let gamesWherePlayerIsSecond =  scores |> List.filter (fun (_,player2,_) -> player2 = player)
         let scoresOfPlayerAsFirst =  gamesWherePlayerIsFirst |> List.sumBy (fun (_,_,x) -> x.Player1Score)
         let scoresOfPlayerAsSecond = gamesWherePlayerIsSecond |> List.sumBy (fun (_,_,x) -> x.Player2Score)
         scoresOfPlayerAsFirst+scoresOfPlayerAsSecond
-            
+
     let makeNPlayersByStrategyInfo (strategyInfo:StrategyInfo) n =
         [0 .. n-1] |> List.map (fun x -> {Name=Guid.NewGuid().ToString();StrategyInfo=strategyInfo})
 
@@ -99,24 +111,27 @@ module Program =
         allPlayersScore games |> List.sortBy (fun (_,x) -> x)
 
     let (randomStrategy:Strategy) = 
-        fun (_:JointMove list) ->
+        fun (_:Move list)  (_:Move list) -> 
             match rand.Next(0,2) with
                 | 0 -> Defect
                 | _ -> Cooperate
 
     let (defectorStrategy:Strategy) =
-        fun _ ->
+        fun (_:Move list)  (_:Move list) ->
             Defect
 
+
     let (cooperatorStrategy:Strategy) =
-        fun _ ->
+        fun _ -> fun _ ->
             Cooperate
 
+
     let (titForTatStrategy:Strategy) =
-        fun (history: JointMove list) ->
-            match history with
+        fun (myHistory: Move list) (opponentHistory: Move list) ->
+            match opponentHistory with
             | [] -> Cooperate
-            | H::_ -> H.Player2Move
+            | H::_ -> H
+
 
     let mutationProbabilities  (scores: (Player*int) list) =
         let totalOfScores = (double)(scores |> List.sumBy (fun (_,x) -> x))
@@ -137,7 +152,7 @@ module Program =
         let (player,_) = mutationProb |> List.item  actualIndex
         player
 
-
+            
     let mutateSomePlayerByRandomFactor 
         (probToChange:double) 
         (players: Player list) 
@@ -149,36 +164,19 @@ module Program =
             | X  when X <= probToChange ->  {x with StrategyInfo = (pickUpAPlayerBasedOnMutationProbabilities probList dRand).StrategyInfo} 
             | _ -> x)
 
-    let mutateWeakestPlayers (sortedPlayersWithScores: (Player*int) list) (probList: (Player*double) list) (players: Player list) dRand =
-        let lSize = List.length sortedPlayersWithScores
-        let toTake = if (lSize/20>1) then lSize/20 else 1
-        let weakest = sortedPlayersWithScores |> List.take toTake |> List.map (fun (x,_) -> x)
-        // let all = sortedPlayersWithScores |> List.map (fun (x,_) -> x)
-        let xRand = rand.NextDouble()
-        players |> List.map (fun x ->
-            match List.contains x weakest with
-            | true ->  {x with  StrategyInfo = (pickUpAPlayerBasedOnMutationProbabilities probList xRand).StrategyInfo} 
-            | false -> x)
-
-
-
 
     let nextGenerationPlayers players numIterations randomFactor =
         let games = makeGames players
         let playedGames = playGamesNTimes games numIterations
         let scores = sortedPlayersScore playedGames
         let tranProb = mutationProbabilities scores
-        // let mutatedPlayers = mutateSomePlayerByRandomFactor randomFactor players tranProb
-        let mutatedPlayers = mutateWeakestPlayers scores tranProb players randomFactor
+        let mutatedPlayers = mutateSomePlayerByRandomFactor randomFactor players tranProb
+        // let mutatedPlayers = mutateWeakestPlayers scores tranProb players randomFactor
         mutatedPlayers
-
-
 
     let playersStrategyStats (players: Player list) (strategies: StrategyInfo list)=
         let stat = strategies |> List.map (fun x -> (x.Name, players |> List.filter (fun y -> y.StrategyInfo = x) |> List.length))
         stat
-
-
 
     let logNGenerationPlayers players numGenerations numIterations randomFactor =
         let (latest,history) = [1 .. numGenerations] |> List.fold (fun (acc,y) _ -> 
@@ -189,16 +187,12 @@ module Program =
         let labeledAll = [0 .. Array.length arrayOfAll - 1 ] |> List.fold (fun acc x -> (x + 1,arrayOfAll.[x])::acc) []
         labeledAll 
 
-
-    let applyStrategyStatToLabeledSeries labeledSeries strategies=
+    let applyStrategyStatToLabeledSeries labeledSeries (strategies:StrategyInfo list)=
         labeledSeries |> List.map (fun (n,players)-> (n,playersStrategyStats players strategies) )
 
     let makeASeriesByName labeledGenerations name =
         labeledGenerations |> List.map (fun (n,strategCountPair) -> (n, (strategCountPair |> List.find (fun (n,_) -> n = name ))  )) |>
             List.map (fun (a,(_,i)) -> (a,i))
-
-
-
 
     let lineStatOfEvolution (strategies:StrategyInfo list) players numGenerations numIterations randomFactor =
         let strategyNames = strategies |> List.map (fun x -> x.Name)
@@ -209,15 +203,7 @@ module Program =
         let _ = toPrint |> List.iter (fun (n,(_,v)) -> printf "%s %d" n v)
         
         Chart.Combine (toPlot |> List.map (fun (n,s) -> Chart.Line(s,Name=n) ))
-
    
-
-
-        
-
-
-
-
 
 
     let cooperatorStrategyInfo = {Name="cooperatorStrategy";Strategy=cooperatorStrategy}
@@ -248,7 +234,6 @@ module Program =
 // play 20 iterations games:
 
 // lineStatOfEvolution strategyInfos players 30 20 0.1
-
 
 // this code contains in part code that I rewiewed and unit tested, and in part
 // code that needs some refactoryng: stay tuned for future releases
@@ -297,7 +282,6 @@ module Program =
 //  get a new generation by
 //  let players_generation_2 = nextGenerationPlayers players_generation_1 20 1.0
 //  you can see the stat again to see how many players for each strategy are present.
-
 
 
 
