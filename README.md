@@ -21,7 +21,7 @@ from the repl:
 \#I "packages/FSharp.Charting.2.1.0"   // note the version 2.1.0 may change
 \#load "FSharp.Charting.fsx"
 \#load "Library.fs" // load the prisoner dilemma library
-open prinsonerDilemma.Program
+open prisonerDilemma.Program
 
 now you can run: lineStatOfEvolution strategyInfos players 30 20 0.1
 it whows a line chart with the number of individual for each strategy in 20 generations where each game consists in 20 iterations
