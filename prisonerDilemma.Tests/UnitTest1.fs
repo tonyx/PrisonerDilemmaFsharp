@@ -261,6 +261,15 @@ type TestClass () =
         Assert.That(80 = firstScore)
 
     [<Test>]
+    member this.listIndexTest() =
+        let myList = [0.5;1.0]
+        let theIndex = myList |> List.findIndex(fun x -> x> 0.1)
+        Assert.AreEqual(0,theIndex)
+        let theSecondIndex = myList |> List.findIndex(fun x -> x> 0.6)
+        Assert.AreEqual(1,theSecondIndex)
+
+
+    [<Test>]
     member this.scoresOf10PlaysOfDefectorsIs60()  =
         let defectorStrategyInfo = {Name="defector";Strategy=defectorStrategy}
         let twoDefectors = makeNPlayersByStrategyInfo defectorStrategyInfo 2
@@ -421,18 +430,73 @@ type TestClass () =
         Assert.AreEqual(expectedSecondInterval,secondInterval)
 
     [<Test>]
+    member this.threePlayersProbabilitiesMatrix()=
+        let defectorStrategyInfo =  {Name="defectorStrategyInfo";Strategy=defectorStrategy}
+        let defector1 = {Name= "defector1";StrategyInfo=defectorStrategyInfo}
+        let defector2 = {Name= "defector2";StrategyInfo=defectorStrategyInfo}
+        let defector3 = {Name= "defector3";StrategyInfo=defectorStrategyInfo}
+        let scores = [(defector1,6);(defector2,4);(defector3,2)]
+        let cumulativeProbabilities = mutationProbabilities scores
+        let firstInterval = List.head cumulativeProbabilities
+        let secondInterval = List.head (List.tail cumulativeProbabilities)
+        let thirdInterval = List.head (List.tail (List.tail cumulativeProbabilities))
+        let actualProb = snd firstInterval
+        let actualProb2 = snd secondInterval
+        let actualProb3 = snd thirdInterval
+
+        Assert.AreEqual(6.0/12.0,actualProb)
+        Assert.AreEqual((6.0+4.0)/12.0,actualProb2,0.000001)
+        Assert.AreEqual(1.0,actualProb3,0.000001)
+        
+
+
+
+
+
+    [<Test>]
     member this.pickUpPlayerOnCumulativeProbabilityList() =
         let defectorStrategyInfo =  {Name="defectorStrategyInfo";Strategy=defectorStrategy}
         let defector1 = {Name= "defector1";StrategyInfo=defectorStrategyInfo}
         let defector2 = {Name= "defector2";StrategyInfo=defectorStrategyInfo}
         let scores = [(defector1,6);(defector2,4)]
         let pickUpFirstInterval = (double)6/(double)10 - 0.001
-        let pickUpSecondInterval = (double)6/(double)10 + 0.001
+        let pickUpSecondInterval = (double)6/(double)10 + 0.1
         let cumulativeProbabilitiesList = mutationProbabilities scores
+        let firstTreshold  = snd (List.head cumulativeProbabilitiesList)
+        let secondTreshold = snd (List.head (List.tail cumulativeProbabilitiesList))
+        Assert.AreEqual(1.0,secondTreshold)
+
         let firstIntervalPlayer = pickUpAPlayerBasedOnMutationProbabilities cumulativeProbabilitiesList pickUpFirstInterval
         Assert.AreEqual(defector1,firstIntervalPlayer)
         let secondIntervalPlayer = pickUpAPlayerBasedOnMutationProbabilities cumulativeProbabilitiesList pickUpSecondInterval
-        Assert.AreEqual(defector1,secondIntervalPlayer)
+        Assert.AreEqual(defector2,secondIntervalPlayer)
+
+
+    [<Test>]
+    member this.pickUpAPlayerBasedOnProbabilitiesList2()=
+        let defectorStrategyInfo =  {Name="defectorStrategyInfo";Strategy=defectorStrategy}
+        let defector1 = {Name= "defector1";StrategyInfo=defectorStrategyInfo}
+        let defector2 = {Name= "defector2";StrategyInfo=defectorStrategyInfo}
+        let defector3 = {Name= "defector3";StrategyInfo=defectorStrategyInfo}
+        let scores = [(defector1,6);(defector2,4);(defector3,2)]
+        let cumulativeProbabilities = mutationProbabilities scores
+        // let pickUpFirstInterval = (double)6/(double)12 - 0.001
+        let pickUpFirstInterval = 0.0
+        // let pickUpSecondInterval = (double)10/(double)12 - 0.01
+        let pickUpSecondInterval = (double)6/(double)12 + 0.01
+        let pickUpThirdInterval = (double)10/(double)12 
+
+        // let pickUpThirdInterval = 1.0-0.1
+
+
+        let firstIntervalPlayer = pickUpAPlayerBasedOnMutationProbabilities cumulativeProbabilities pickUpFirstInterval
+        Assert.AreEqual(defector1,firstIntervalPlayer)
+        let secondIntervalPlayer = pickUpAPlayerBasedOnMutationProbabilities cumulativeProbabilities pickUpSecondInterval
+        Assert.AreEqual(defector2,secondIntervalPlayer)
+        let thirdIntervalPlayer = pickUpAPlayerBasedOnMutationProbabilities cumulativeProbabilities pickUpThirdInterval
+        Assert.AreEqual(defector3,thirdIntervalPlayer)
+
+
 
     [<Test>]
     member this.DefetorVsCooperatorinA10IterationGame() =
