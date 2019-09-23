@@ -9,14 +9,16 @@ module Program =
     open Microsoft.FSharp.Quotations.DerivedPatterns
     open Microsoft.FSharp.Quotations.ExprShape
 
-
     open FSharp.Charting
+    
     type Move = Cooperate | Defect
     type JointMove = {Player1Move: Move; Player2Move: Move}
     type JointScore = {Player1Score: int; Player2Score: int}
 
 
+    // not used
     let evalQ (x:Expr<Move>) = 2
+
 
 
     let jointScore jointMove  =
@@ -34,8 +36,8 @@ module Program =
             | {Player1Move= Defect ; Player2Move=Defect} ->       {Player1Score=P; Player2Score=P}   
     
 
+    
     type Strategy = (Move list) -> (Move list) -> Move
-
 
     [<CustomEquality;CustomComparison>]
     type StrategyInfo =
@@ -147,12 +149,20 @@ module Program =
         let actualIndex =
             match indexOfItemAfterTheOneToFind with
             | None -> List.length mutationProb - 1
-            | Some 0 -> 0
-            | Some X -> X - 1
+            | Some X -> X
+
         let (player,_) = mutationProb |> List.item  actualIndex
         player
 
-            
+
+    // let pickUpAPlayerBasedOnMutationProbabilities (mutationProb: (Player*double) list) dRand = 
+    //     let indexOfItemAfterTheOneToFind = mutationProb |> List.findIndex (fun (_,x)-> x>=dRand) 
+
+    //     let (player,_) = mutationProb |> List.item  indexOfItemAfterTheOneToFind
+    //     player
+
+
+
     let mutateSomePlayerByRandomFactor 
         (probToChange:double) 
         (players: Player list) 
