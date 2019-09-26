@@ -21,194 +21,208 @@ type TestClass () =
         Assert.Pass()
     
     [<Test>]
-    member this.OneTickGameBetweenCooperators() =
+    member this.``in a one tick game between two cooperators both cooperates as first move``()=
+        // given
         let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
         let firstCooperator = {Name="cooperator1";StrategyInfo=cooperatorStrategyInfo}
         let secondCooperator = {Name="cooperator2";StrategyInfo=cooperatorStrategyInfo}
         let game = {Player1=firstCooperator;Player2=secondCooperator; JointmoveHistory=[]}
+        // when
         let oneTickGame = tick game
         let resultingMoves = oneTickGame.JointmoveHistory 
+        // then
         Assert.That(List.length resultingMoves = 1)
         let frameOfGame = List.head resultingMoves
         Assert.AreEqual(Cooperate,frameOfGame.Player1Move)
         Assert.AreEqual(Cooperate,frameOfGame.Player2Move)
 
-        
 
     [<Test>]
-    member this.OneTickGameBetweenCooperatorAndDefector() =
+    member this.``in a one tick game the cooperator cooperates and the defector defects`` ()= 
+        // given
         let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
         let defectorStrategyInfo = {Name="defector";Strategy=defectorStrategy}
         let cooperator = {Name="cooperator";StrategyInfo=cooperatorStrategyInfo}
         let defector = {Name="defector";StrategyInfo=defectorStrategyInfo}
         let game = {Player1=cooperator;Player2=defector; JointmoveHistory=[]}
+        // when
         let oneTickGame = tick game
         let resultingMoves = oneTickGame.JointmoveHistory 
+        // then
         Assert.That(List.length resultingMoves = 1)
         let frameOfGame = List.head resultingMoves
         Assert.AreEqual(Cooperate,frameOfGame.Player1Move)
         Assert.AreEqual(Defect,frameOfGame.Player2Move)
 
     [<Test>]
-    member this.TwoTickGameBetweenTitForTatAndDefector() =
+    member this.``in a two ticks game the tit for tat cooperates and then copies the opponent`` () =
+        // given
         let titForTatStrategyInfo = {Name="titForTat";Strategy=titForTatStrategy}
         let defectorStrategyInfo = {Name="defector";Strategy=defectorStrategy}
         let titForTatRef = {Name="titForTat";StrategyInfo=titForTatStrategyInfo}
         let defectorRef = {Name="defector";StrategyInfo=defectorStrategyInfo}
         let game = {Player1=titForTatRef;Player2=defectorRef; JointmoveHistory=[]}
-        let oneTickGame = game |> tick |> tick
-        let resultingMoves = oneTickGame.JointmoveHistory 
+        // when
+        let twoTicksGame = game |> tick |> tick
+        let resultingMoves = twoTicksGame.JointmoveHistory 
         Assert.That(List.length resultingMoves = 2)
-        let frameOfGame = List.head resultingMoves
-        let secondFrameOfGame = List.head (List.tail resultingMoves)
-        Assert.AreEqual(Defect,frameOfGame.Player1Move)
-        Assert.AreEqual(Defect,frameOfGame.Player2Move)
-        Assert.AreEqual(Cooperate,secondFrameOfGame.Player1Move)
-        Assert.AreEqual(Defect,secondFrameOfGame.Player2Move)
+        // then
+        let lastJointMoves = List.head resultingMoves
+        let firstJointMoves = List.head (List.tail resultingMoves)
+        Assert.AreEqual(Defect,lastJointMoves.Player1Move)
+        Assert.AreEqual(Defect,lastJointMoves.Player2Move)
+        Assert.AreEqual(Cooperate,firstJointMoves.Player1Move)
+        Assert.AreEqual(Defect,firstJointMoves.Player2Move)
+
+
 
     [<Test>]
-    member this.TwoTickGameBetweenTitForTatAndDefector1() =
-        let titForTatStrategyInfoRef = {Name="titForTat";Strategy=titForTatStrategy}
-        let defectorStrategyInfoRef = {Name="defector";Strategy=defectorStrategy}
-        let titForTatRef = {Name="titForTat";StrategyInfo=titForTatStrategyInfoRef}
-        let defectorRef = {Name="defector";StrategyInfo=defectorStrategyInfoRef}
-        let game = {Player1=defectorRef;Player2=titForTatRef; JointmoveHistory=[]}
-        let oneTickGame = game |> tick |> tick
-        let resultingMoves = oneTickGame.JointmoveHistory 
-        Assert.That(List.length resultingMoves = 2)
-        let frameOfGame = List.head resultingMoves
-        let secondFrameOfGame = List.head (List.tail resultingMoves)
-        Assert.AreEqual(Defect,frameOfGame.Player1Move)
-        Assert.AreEqual(Defect,frameOfGame.Player2Move)
-        Assert.AreEqual(Defect,secondFrameOfGame.Player1Move)
-        Assert.AreEqual(Cooperate,secondFrameOfGame.Player2Move)
-
-    [<Test>]
-    member this.TwoTickGameBetweenDefectorAndTitForTat() =
-        let titForTatStrategyInfoRef = {Name="titForTat";Strategy=titForTatStrategy}
-        let defectorStrategyInfoRef = {Name="defector";Strategy=defectorStrategy}
-        let titForTatRef = {Name="titForTat";StrategyInfo=titForTatStrategyInfoRef}
-        let defectorRef = {Name="defector";StrategyInfo=defectorStrategyInfoRef}
-        let game = {Player1=titForTatRef;Player2=defectorRef; JointmoveHistory=[]}
-        let oneTickGame = game |> tick |> tick
-        let resultingMoves = oneTickGame.JointmoveHistory 
-        Assert.That(List.length resultingMoves = 2)
-        let frameOfGame = List.head resultingMoves
-        let secondFrameOfGame = List.head (List.tail resultingMoves)
-        Assert.AreEqual(Defect,frameOfGame.Player1Move)
-        Assert.AreEqual(Defect,frameOfGame.Player2Move)
-        Assert.AreEqual(Cooperate,secondFrameOfGame.Player1Move)
-        Assert.AreEqual(Defect,secondFrameOfGame.Player2Move)
-
-    [<Test>]
-    member this.OutcomesOfATwoTickGameBetweenCooperators() =
+    member this.``a cooperator in a two round match with another cooperator earn 8 points`` ()=
+        // given
         let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
         let firstCooperator = {Name="cooperator1";StrategyInfo=cooperatorStrategyInfo}
         let secondCooperator = {Name="cooperator2";StrategyInfo=cooperatorStrategyInfo}
         let game = {Player1=firstCooperator;Player2=secondCooperator; JointmoveHistory=[]}
+        // when
         let twoTicksGame =  game |> tick |> tick
+        // then
         Assert.That((List.length twoTicksGame.JointmoveHistory)=2)
         let outcomes = gameScores twoTicksGame 
         Assert.That(outcomes.Player1Score = 8)
+        Assert.That(outcomes.Player2Score = 8)
 
     [<Test>]
-    member this.NTicksGameTest() =
+    member this.``two cooperators match using nTicks function`` ()=
+        // given 
         let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
         let firstCooperator = {Name="cooperator1";StrategyInfo=cooperatorStrategyInfo}
         let secondCooperator = {Name="cooperator2";StrategyInfo=cooperatorStrategyInfo}
         let game = {Player1=firstCooperator;Player2=secondCooperator; JointmoveHistory=[]}
-
+        // when
         let twoTicksGame =  nTicks game 2
+        // then
         Assert.That((List.length twoTicksGame.JointmoveHistory)=2)
         let outcomes = gameScores twoTicksGame
         Assert.That(outcomes.Player1Score = 8)
         Assert.That(true)
 
     [<Test>]
-    member this.GamesOutcome() =
-
+    member this.``scores of a list of two games``() =
+        // given
         let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
         let firstCooperator = {Name="cooperator1";StrategyInfo=cooperatorStrategyInfo}
         let secondCooperator = {Name="cooperator2";StrategyInfo=cooperatorStrategyInfo}
-
         let game1 = {Player1=firstCooperator;Player2=secondCooperator; JointmoveHistory=[]}
         let game2 = {Player1=firstCooperator;Player2=secondCooperator; JointmoveHistory=[]}
+        // when
         let twoTicksGame1 =  nTicks game1 2
         let twoTicksGame2 =  nTicks game2 2
         let games = [twoTicksGame1;twoTicksGame2]
-        let playedGame = gamesScores games
-        Assert.That(List.length playedGame = 2)
-        let (_,_,outcome) = List.head playedGame
+        let plaidGame = gamesScores games
+        // then
+        Assert.That(List.length plaidGame = 2)
+        let (_,_,outcome) = List.head plaidGame
         Assert.That(outcome.Player1Score=8)
+        let (_,_,outcome2) = List.head (List.tail plaidGame)
+        Assert.That(outcome2.Player1Score=8)
+
 
     
     [<Test>]
-    member this.makeGamesTest1()  =
-
+    member this.``generating games between two player end up in a list of two games``()  =
+        // given
         let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
         let firstCooperator = {Name="cooperator1";StrategyInfo=cooperatorStrategyInfo}
         let secondCooperator = {Name="cooperator2";StrategyInfo=cooperatorStrategyInfo}
-
         let players = [firstCooperator;secondCooperator]
+        // when
         let games = makeGames players 
+        // then
+        let game1 = {Player1=firstCooperator;Player2=secondCooperator;JointmoveHistory=[]}
+        let game2 = {Player2=firstCooperator;Player1=secondCooperator;JointmoveHistory=[]}
         Assert.That(List.length games = 2)
+        Assert.AreEqual(game1,List.head games )
+        Assert.AreEqual(game2,List.head (List.tail games) )
 
     [<Test>]
-    member this.makeGamesTest2()  =
-
+    member this.``generating games between three players gets six games``() = 
+        // given
         let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
         let firstCooperator = {Name="cooperator1";StrategyInfo=cooperatorStrategyInfo}
         let secondCooperator = {Name="cooperator2";StrategyInfo=cooperatorStrategyInfo}
         let thirdCooperator = {Name="cooperator3";StrategyInfo=cooperatorStrategyInfo}
-
         let players = [firstCooperator;secondCooperator;thirdCooperator]
+        // when 
         let games = makeGames players 
-        Assert.That(List.length games = 6)
-        
+        // then
 
+        Assert.AreEqual(6,List.length games)
+        
     [<Test>]
-    member this.playGamesTest3()  =
+    member this.``games between three players ``() = 
+        // given
         let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
         let firstCooperator = {Name="cooperator1";StrategyInfo=cooperatorStrategyInfo}
         let secondCooperator = {Name="cooperator2";StrategyInfo=cooperatorStrategyInfo}
         let thirdCooperator = {Name="cooperator3";StrategyInfo=cooperatorStrategyInfo}
-        
+        let players = [firstCooperator;secondCooperator;thirdCooperator]
+        // when 
+        let games = makeGames players 
+        // then
+        let game1 = {Player1=firstCooperator;Player2=secondCooperator;JointmoveHistory=[]}
+        let game2 = {Player2=firstCooperator;Player1=secondCooperator;JointmoveHistory=[]}
+        let setOfGames = Set.ofList games
+
+        Assert.AreEqual(6,List.length games)
+        Assert.IsTrue(Set.contains game1 setOfGames)
+        Assert.IsTrue(Set.contains game2 setOfGames)
+ 
+    [<Test>]
+    member this.``able to play a list of games n times``()  =
+        // given
+        let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
+        let firstCooperator = {Name="cooperator1";StrategyInfo=cooperatorStrategyInfo}
+        let secondCooperator = {Name="cooperator2";StrategyInfo=cooperatorStrategyInfo}
+        let thirdCooperator = {Name="cooperator3";StrategyInfo=cooperatorStrategyInfo}
         let players = [firstCooperator;secondCooperator;thirdCooperator]
         let games = makeGames players
+        // when
         let playedGames = playGamesNTimes games 2
         let firstGame = List.head playedGames
+        // then
         Assert.That(List.length firstGame.JointmoveHistory = 2)
 
     [<Test>]
-    member this.gamesScores()  =
-
+    member this.``playing games between cooperators two times gets score of 8 in the first game for the first player``()  =
+        // given
         let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
         let firstCooperator = {Name="cooperator1";StrategyInfo=cooperatorStrategyInfo}
         let secondCooperator = {Name="cooperator2";StrategyInfo=cooperatorStrategyInfo}
-
-
         let players = [firstCooperator;secondCooperator]
         let games = makeGames players
         let playedGames = playGamesNTimes games 2
         let outcomes = gamesScores playedGames
+        // when
         let (_,_,firstGameOutcome) = List.head outcomes
-        Assert.That(firstGameOutcome.Player1Score = 8)
+        // then
+        Assert.AreEqual(8,firstGameOutcome.Player1Score)
     
     [<Test>]
-    member this.playersScoreInTournment()  =
-
+    member this.``two cooperators in a two games tournment gets 8 points each one``()  =
+        // given
         let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
         let firstCooperator = {Name="cooperator1";StrategyInfo=cooperatorStrategyInfo}
         let secondCooperator = {Name="cooperator2";StrategyInfo=cooperatorStrategyInfo}
-
         let players = [firstCooperator;secondCooperator]
         let games = makeGames players
+        // when
         let playedGames = playGamesNTimes games 2
         let outcomes = gamesScores playedGames
         let (_,_,firstGameOutcome) = List.head outcomes
         let (_,_,secondGameOutcome) = List.head (List.tail outcomes)
         let scores = gamesScores playedGames
         let player1outcomes = scoreForPlayer  firstCooperator scores
+        // then
         Assert.That(firstGameOutcome.Player1Score = 8)
         Assert.That(secondGameOutcome.Player1Score = 8)
         Assert.That(16 = player1outcomes)
@@ -222,43 +236,60 @@ type TestClass () =
 
 
     [<Test>]
-    member this.makeGames5Players()  =
+    member this.``a tournment of five players is 20 games``()  =
+        // given
         let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
         let fiveCooperators = makeNPlayersByStrategyInfo cooperatorStrategyInfo 5
+        // when
         let games = makeGames fiveCooperators 
-        Assert.That(20 = List.length games)
-
+        // then
+        let expectedNumOfGames = (4 + 3 + 2 + 1) * 2 // = 20
+        Assert.AreEqual(20, List.length games)
+        
     [<Test>]
-    member this.makeTournment2Players()  =
+    member this.``in a tournment of two players there are two games``()  =
+        // given
         let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
         let twoCooperators = makeNPlayersByStrategyInfo cooperatorStrategyInfo 2
+        // when
         let games = makeGames twoCooperators
-        Assert.That(2 = List.length games)
+        // then
+        Assert.AreEqual(2, List.length games)
 
     [<Test>]
-    member this.makeTournment3Players()  =
+    member this.``in a tournment of three player there are three games``()  =
+        // given
+        let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
+        let threeCooperators = makeNPlayersByStrategyInfo cooperatorStrategyInfo 3
+        // when
+        let games = makeGames threeCooperators
+        // then
+        let expectedNumberOfGames = (3+2)* 2 // = 6
+        Assert.AreEqual(6, List.length games)
+
+    [<Test>]
+    member this.``in a set of games plaid 10 times, the history of moves contains 10 elements``()  =
+        // given
         let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
         let threeCooperators = makeNPlayersByStrategyInfo cooperatorStrategyInfo 3
         let games = makeGames threeCooperators
-        Assert.That(6 = List.length games)
-
-    [<Test>]
-    member this.playedTournmentReturnsGamePlayedNTimes()  =
-        let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
-        let threeCooperators = makeNPlayersByStrategyInfo cooperatorStrategyInfo 3
-        let games = makeGames threeCooperators
+        // when
         let playedGames = playGamesNTimes games 10
+        // then
         Assert.That(10 = List.length ((List.head playedGames).JointmoveHistory))
 
     [<Test>]
     member this.scoresOf10PlaysOfCooperatorsIs80()  =
+        // given
         let cooperatorStrategyInfo = {Name="cooperator";Strategy=cooperatorStrategy}
         let twoCooperators = makeNPlayersByStrategyInfo cooperatorStrategyInfo 2
         let games = makeGames twoCooperators
+        // when
         let playedGames = playGamesNTimes games 10
         let scores = sortedPlayersScore playedGames
         let (_,firstScore) = List.head scores
-        Assert.That(80 = firstScore)
+        // then
+        Assert.AreEqual(80,firstScore)
 
     [<Test>]
     member this.listIndexTest() =
@@ -542,7 +573,11 @@ type TestClass () =
     //     Assert.AreEqual(2, evalQ qExp)
         
 
-        
+    [<Test>]
+    member this.ListPickUp() =
+        let myList= [0.4;1.0]
+        let actualIndex = myList |> List.findIndex (fun x -> x>=0.2)
+        Assert.AreEqual(0,actualIndex)
 
 
 

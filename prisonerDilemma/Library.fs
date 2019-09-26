@@ -15,10 +15,8 @@ module Program =
     type JointMove = {Player1Move: Move; Player2Move: Move}
     type JointScore = {Player1Score: int; Player2Score: int}
 
-
     // not used
     let evalQ (x:Expr<Move>) = 2
-
 
 
     let jointScore jointMove  =
@@ -97,19 +95,19 @@ module Program =
         scoresOfPlayerAsFirst+scoresOfPlayerAsSecond
 
     let makeNPlayersByStrategyInfo (strategyInfo:StrategyInfo) n =
-        [0 .. n-1] |> List.map (fun x -> {Name=Guid.NewGuid().ToString();StrategyInfo=strategyInfo})
+        [0 .. n-1] |> List.map (fun _ -> {Name=Guid.NewGuid().ToString();StrategyInfo=strategyInfo})
 
     let playersOfGames (games:Game list) =
         games |> List.map (fun x -> [x.Player1;x.Player2]) |> List.fold (@) [] |> Set.ofList |> Set.toList
 
 
-    let allPlayersScore games =
-        let scores = gamesScores games
-        let players = playersOfGames games
-        players |> List.map (fun x -> (x,scoreForPlayer x scores))
-
 
     let sortedPlayersScore games =
+        let allPlayersScore games =
+            let scores = gamesScores games
+            let players = playersOfGames games
+            players |> List.map (fun x -> (x,scoreForPlayer x scores))
+
         allPlayersScore games |> List.sortBy (fun (_,x) -> x)
 
     let (randomStrategy:Strategy) = 
@@ -184,10 +182,12 @@ module Program =
         // let mutatedPlayers = mutateWeakestPlayers scores tranProb players randomFactor
         mutatedPlayers
 
+    /// <returns>list of pairs strategy and number of payers for that strategy</returns>
     let playersStrategyStats (players: Player list) (strategies: StrategyInfo list)=
         let stat = strategies |> List.map (fun x -> (x.Name, players |> List.filter (fun y -> y.StrategyInfo = x) |> List.length))
         stat
 
+    /// <returns>time series of players for each step of evolution numGenerations</returns>
     let logNGenerationPlayers players numGenerations numIterations randomFactor =
         let (latest,history) = [1 .. numGenerations] |> List.fold (fun (acc,y) _ -> 
             (nextGenerationPlayers acc numIterations randomFactor,acc::y) ) (players,[])
@@ -197,13 +197,18 @@ module Program =
         let labeledAll = [0 .. Array.length arrayOfAll - 1 ] |> List.fold (fun acc x -> (x + 1,arrayOfAll.[x])::acc) []
         labeledAll 
 
+    /// given a list of the form (time label*player list) 
+    /// <returns> the list of the timeframe, each containing a list of pairs:  number of number of players per strategy </returns>
     let applyStrategyStatToLabeledSeries labeledSeries (strategies:StrategyInfo list)=
         labeledSeries |> List.map (fun (n,players)-> (n,playersStrategyStats players strategies) )
 
-    let makeASeriesByName labeledGenerations name =
-        labeledGenerations |> List.map (fun (n,strategCountPair) -> (n, (strategCountPair |> List.find (fun (n,_) -> n = name ))  )) |>
+    /// given a list of pairs (num generation,strategy name)  and a name
+    /// <returns>a plottable serie of (strtegy name,number of players of that strategy) </returns>
+    let makeASeriesByName labeledGenerations name = 
+        labeledGenerations |> List.map (fun (n,strategCountPair) -> (n, (strategCountPair |> List.find (fun (n,_) -> n = name ))  )) |> 
             List.map (fun (a,(_,i)) -> (a,i))
 
+    
     let lineStatOfEvolution (strategies:StrategyInfo list) players numGenerations numIterations randomFactor =
         let strategyNames = strategies |> List.map (fun x -> x.Name)
         let timeFrameLabeledSeries = logNGenerationPlayers players numGenerations numIterations randomFactor 
@@ -211,10 +216,7 @@ module Program =
         let toPlot = strategyNames |> List.map (fun n -> (n,makeASeriesByName appliedStrategyStat n)) 
         let toPrint = toPlot |> List.map (fun (n,l) -> (n,List.head l)) 
         let _ = toPrint |> List.iter (fun (n,(_,v)) -> printf "%s %d" n v)
-        
         Chart.Combine (toPlot |> List.map (fun (n,s) -> Chart.Line(s,Name=n) ))
-   
-
 
     let cooperatorStrategyInfo = {Name="cooperatorStrategy";Strategy=cooperatorStrategy}
     let defectorStrategyInfo = {Name="defectorStrategy"; Strategy=defectorStrategy}
