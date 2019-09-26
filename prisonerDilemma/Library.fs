@@ -253,7 +253,7 @@ module Program =
 // simple notes:
 // how to run interactively:
 // the solution has two subprojects/directories: prisonerDilemma and prisonerDilemma.Tests
-// in the prisonerDilemma directory, install the Chart.Library by the command: nuget install Chart.Library
+// in the prisonerDilemma directory, install the Chart.Library by the command: nuget install Fsharp.Charting
 // run the repl: (fsi in windows, or fsharpi on mono)
 // from the repl:
 // #I "packages/FSharp.Charting.2.1.0"   // note the version 2.1.0 may change
