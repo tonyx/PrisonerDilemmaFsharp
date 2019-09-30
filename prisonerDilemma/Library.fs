@@ -54,7 +54,6 @@ module Program =
 
     type Game = { Player1:Player; Player2:Player; JointmoveHistory: JointMove list }
 
-
     let tick (game:Game) = 
         let firstPlayerMoves = game.JointmoveHistory |> List.map (fun X -> X.Player1Move)
         let secondPlayerMoves = game.JointmoveHistory |> List.map (fun X -> X.Player2Move)
@@ -198,17 +197,30 @@ module Program =
         labeledAll 
 
     /// given a list of the form (time label*player list) 
-    /// <returns> the list of the timeframe, each containing a list of pairs:  number of number of players per strategy </returns>
+    /// <returns> the list of the timeframe, each containing a list of pairs:  number  of players per strategy </returns>
     let applyStrategyStatToLabeledSeries labeledSeries (strategies:StrategyInfo list)=
         labeledSeries |> List.map (fun (n,players)-> (n,playersStrategyStats players strategies) )
 
     /// given a list of pairs (num generation,strategy name)  and a name
-    /// <returns>a plottable serie of (strtegy name,number of players of that strategy) </returns>
+    /// <returns>a plottable serie of (strategy name,number of players of that strategy) </returns>
     let makeASeriesByName labeledGenerations name = 
-        labeledGenerations |> List.map (fun (n,strategCountPair) -> (n, (strategCountPair |> List.find (fun (n,_) -> n = name ))  )) |> 
+        labeledGenerations |> List.map (fun (n,strategCountPair) -> (n, (strategCountPair |> List.find (fun (n,_) -> n = name )))) |> 
             List.map (fun (a,(_,i)) -> (a,i))
 
     
+    let lineStatOfEvolutionRef (strategies:StrategyInfo list) players numGenerations numIterations randomFactor =
+        let strategyNames = strategies |> List.map (fun x -> x.Name)
+        let timeFrameLabeledSeries = logNGenerationPlayers players numGenerations numIterations randomFactor 
+        let appliedStrategyStat = applyStrategyStatToLabeledSeries timeFrameLabeledSeries strategies
+        let toPlot = strategyNames |> List.map (fun n -> (n,makeASeriesByName appliedStrategyStat n)) 
+        //let _ = toPlot |> List.map (fun (s,b:(int*int) list) -> printf "%s\n" s)
+        let _ = toPlot |> List.map (fun (s,b:(int*int) list) -> (printf "%s\n" s; b |>  List.map (fun (j,k) -> printf "%d, %d\n" j k)))
+        
+        0
+
+
+
+        
     let lineStatOfEvolution (strategies:StrategyInfo list) players numGenerations numIterations randomFactor =
         let strategyNames = strategies |> List.map (fun x -> x.Name)
         let timeFrameLabeledSeries = logNGenerationPlayers players numGenerations numIterations randomFactor 
@@ -261,7 +273,8 @@ module Program =
 // #load "Library.fs" // load the prisoner dilemma library
 // open prinsonerDilemma.Program
 
-// now you can run: lineStatOfEvolution strategyInfos players 30 20 0.1
+// now you can run: 
+// lineStatOfEvolution strategyInfos players 30 20 0.1
 
 
 // how to run the tests:

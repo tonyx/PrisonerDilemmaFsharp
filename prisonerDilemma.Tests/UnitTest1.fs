@@ -302,10 +302,13 @@ type TestClass () =
 
     [<Test>]
     member this.scoresOf10PlaysOfDefectorsIs60()  =
+        // given
         let defectorStrategyInfo = {Name="defector";Strategy=defectorStrategy}
         let twoDefectors = makeNPlayersByStrategyInfo defectorStrategyInfo 2
         let games = makeGames twoDefectors
+        // when
         let playedTournament = playGamesNTimes games 10
+        // then
         let scores = sortedPlayersScore playedTournament
         let (_,firstScore) = List.head scores
         Assert.That(60 = firstScore)
