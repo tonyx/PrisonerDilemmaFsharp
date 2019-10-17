@@ -54,6 +54,22 @@ module Program =
 
     type Game = { Player1:Player; Player2:Player; JointmoveHistory: JointMove list }
 
+    
+    /// **Description**
+    /// A game is played one time, and the result is an equivalent game
+    /// whit the joing joint list has the result of that game play
+    /// so for a game between a defector and a coperator, with an empty history of moves, the result of a tick 
+    /// will be {Player1 = defector; Player2=cooperator; JointMoveHistory= [{Player1Move=Defect;Player2Move=Cooperate}]}
+    /// 
+    /// **Parameters**
+    ///   * `game` - parameter of type `Game`
+    ///
+    /// **Output Type**
+    ///   * `Game`
+    ///
+    /// **Exceptions**
+    /// None
+    ///
     let tick (game:Game) = 
         let firstPlayerMoves = game.JointmoveHistory |> List.map (fun X -> X.Player1Move)
         let secondPlayerMoves = game.JointmoveHistory |> List.map (fun X -> X.Player2Move)
@@ -62,19 +78,73 @@ module Program =
         {game with JointmoveHistory = {Player1Move=playerOneMove;Player2Move=playerTwoMove}::game.JointmoveHistory } 
 
 
+    
+    /// **Description**
+    /// a game is ticked n times, so for instance, given a game between a defector and a cooperator, with an empty list of moves,
+    /// the result of a tick 2 will be 
+    /// will be {Player1 = defector; Player2=cooperator; JointMoveHistory= [{Player1Move=Defect;Player2Move=Cooperate}; {Player1Move=Defect;Player2Move=Cooperate}]}
+    /// Note that the history is such that the latest move will be on its head
+    /// **Parameters**
+    ///   * `game` - parameter of type `Game`
+    ///   * `n` - parameter of type `int`
+    ///
+    /// **Output Type**
+    ///   * `Game`
+    ///
+    /// **Exceptions**
+    ///
     let nTicks (game: Game) n =
         [1 .. n ] |> List.fold (fun game _ -> game |> tick ) game
 
     let rand = new Random(System.DateTime.Now.Millisecond)
 
+    
+    /// **Description**
+    /// given n players, generate a list of games such that for each pair of players player1 and player1 
+    /// that are not the same player, there will be in the list of games the game exactly one time the game
+    /// {Player1=player1; Player2=player2; JointmoveHistory=[]}
+    /// and the game
+    /// {Player1=player2; Player2=player1; JointmoveHistory=[]}
+    /// **Parameters**
+    ///   * `players` - parameter of type `Player list`
+    ///
+    /// **Output Type**
+    ///   * `Game list`
+    ///
+    /// **Exceptions**
+    ///
     let makeGames (players: Player list): Game list =
         (players |> List.map (fun x -> ((players |> List.filter (fun z -> z <> x)) |> 
         (List.map (fun y ->  {Player1=x;Player2=y;JointmoveHistory=[]}  ))))) |> List.fold (@) [] 
 
 
+    
+    /// **Description**
+    /// each game is played n times, that means is "ticked" n times
+    /// **Parameters**
+    ///   * `games` - parameter of type `Game list`
+    ///   * `n` - parameter of type `int`
+    ///
+    /// **Output Type**
+    ///   * `Game list`
+    ///
+    /// **Exceptions**
+    ///
     let playGamesNTimes (games:Game list) n =
         games |> List.map (fun x -> nTicks x n)
 
+    
+    /// **Description**
+    /// given a game computes the scores for each player
+    /// **Parameters**
+    ///   * `game` - parameter of type `Game`
+    ///
+    /// **Output Type**
+    ///   * `JointScore`
+    ///
+    /// **Exceptions**
+    /// No
+    ///
     let gameScores (game: Game) =  
         game.JointmoveHistory |> List.fold (fun acc x -> 
             let jo = jointScore x;
@@ -131,7 +201,25 @@ module Program =
             | [] -> Cooperate
             | H::_ -> H
 
-
+ 
+    
+    /// **Description**
+    /// given a list of pairs player,score, returns a list player,threshold where the thresholds 
+    /// are strictly increaseing, between 0.0 and 1.0, and are meant to speify the probability to 
+    /// pick up the player. playerx will be choosen with a probability given by the difference between
+    /// its threshold and the previous one in the list
+    /// 
+    /// **Parameters**
+    ///   * `scores` - parameter of type `(Player * int) list`
+    ///
+    /// **Output Type**
+    ///   * `(Player * double) list`
+    ///
+    /// **See Also**
+    /// pickUpAPlayerBasedOnMutationProbabilities
+    /// 
+    /// **Exceptions**
+    ///
     let mutationProbabilities  (scores: (Player*int) list) =
         let totalOfScores = (double)(scores |> List.sumBy (fun (_,x) -> x))
         let probabilitiesOfMutationTo = scores |> List.map (fun (p,s) -> (p,(double)s/(double)totalOfScores))
@@ -160,6 +248,24 @@ module Program =
 
 
 
+    
+    /// **Description**
+    /// returns a new list of players where each player mutates 
+    /// with a probability of probToChange, and when it mutates, 
+    /// it takes a new strategy from a player with a probability
+    /// 
+    /// 
+    ///
+    /// **Parameters**
+    ///   * `probToChange` - parameter of type `double`
+    ///   * `players` - parameter of type `Player list`
+    ///   * `probList` - parameter of type `(Player * double) list`
+    ///
+    /// **Output Type**
+    ///   * `Player list`
+    ///
+    /// **Exceptions**
+    ///
     let mutateSomePlayerByRandomFactor 
         (probToChange:double) 
         (players: Player list) 
@@ -172,6 +278,20 @@ module Program =
             | _ -> x)
 
 
+    
+    /// **Description**
+    /// get a new generation of players which play a complete tournament of 
+    /// games iterated for numIterations time where each player have a randomFactor
+    /// probability to change it's type
+    /// **Parameters**
+    ///   * `players` - parameter of type `Player list`
+    ///   * `numIterations` - parameter of type `int`
+    ///   * `randomFactor` - parameter of type `double` 
+    ///
+    /// **Output Type**
+    ///   * `Player list`
+    ///
+    ///
     let nextGenerationPlayers players numIterations randomFactor =
         let games = makeGames players
         let playedGames = playGamesNTimes games numIterations
